@@ -13,7 +13,4 @@
  ../../include/eagle_soc.h ../include/user_config.h \
  ../../include/user_interface.h ../../include/ip_addr.h \
  ../../include/queue.h ../../include/spi_flash.h ../../include/gpio.h \
- ../include/user_timer.h ../include/sta_client.h \
- ../include/user_smart_config.h ../../include/smartconfig.h \
- ../../include/c_types.h ../include/user_tcp_client.h \
- ../../include/espconn.h
+ ../include/user_timer.h

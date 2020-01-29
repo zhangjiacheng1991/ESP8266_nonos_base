@@ -13,6 +13,7 @@ struct espconn conn;
 
 bool ICACHE_FLASH_ATTR  init_tcp_client()
 {
+	os_printf("----------------init_tcp_client----------------------\n");
 	conn.type = ESPCONN_TCP;
 	conn.proto.tcp = (esp_tcp*)os_zalloc(sizeof(esp_tcp));
 	conn.proto.tcp->local_port = 3456 ;
@@ -29,11 +30,15 @@ bool ICACHE_FLASH_ATTR  init_tcp_client()
 
 	//Á¬½ÓtcpServer
 	espconn_connect(&conn);
+	os_printf("----------------init_tcp_client end----------------------\n");
 }
 
 void ICACHE_FLASH_ATTR tcp_recv_callback(void* arg,char* pdata,unsigned short len)
 {
-	os_printf("----------------new data----------------------\n");
+	char temp[len+1];
+	memset(&temp,0,len+1);
+	memcpy(&temp,pdata,len);
+	os_printf("%s",temp);
 }
 //void ICACHE_FLASH_ATTR tcp_callback(void* arg,char* pdata,unsigned short len)
 //{

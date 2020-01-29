@@ -25,9 +25,7 @@
 #include "osapi.h"
 #include "user_interface.h"
 #include "user_timer.h"
-#include "sta_client.h"
-#include "user_smart_config.h"
-#include "user_tcp_client.h"
+
 
 
 #if ESP_PLATFORM
@@ -107,16 +105,7 @@ user_init(void)
 	//…Ë÷√≤®Ãÿ¬ 
 //	uart_init(9600,9600);
     os_printf("SDK version:%s\n", system_get_sdk_version());
-    init_samrt_config();
-    init_tcp_client();
- //  init_timer();
-//   if( !init_client())
-//   {
-//	   os_printf("\r\ninit_client err...\r\n");
-//   }
-//   else
-//   {
-//	   os_printf("\r\ninit_client success...\r\n");
-//   }
+   wifi_set_opmode(STATION_MODE);
+   init_timer();
 }
 
