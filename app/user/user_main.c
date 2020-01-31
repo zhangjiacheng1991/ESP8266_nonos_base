@@ -22,12 +22,8 @@
  *
  */
 
-#include "osapi.h"
 #include "user_interface.h"
 #include "user_timer.h"
-
-
-
 #if ESP_PLATFORM
 //#include "user_esp_platform.h"
 #endif
@@ -92,7 +88,16 @@ void ICACHE_FLASH_ATTR user_pre_init(void)
 		while(1);
 	}
 }
-
+//// gpioÖÐ¶Ïº¯Êý
+//void gpio_break_callback()
+//{
+//	switch(cur_gpio_break)
+//	{
+//	case 14: ir_read_break_callback();
+//	}
+//
+//
+//}
 /******************************************************************************
  * FunctionName : user_init
  * Description  : entry of user application, init user function here
@@ -106,6 +111,7 @@ user_init(void)
 //	uart_init(9600,9600);
     os_printf("SDK version:%s\n", system_get_sdk_version());
    wifi_set_opmode(STATION_MODE);
+   ir_init();
    init_timer();
 }
 

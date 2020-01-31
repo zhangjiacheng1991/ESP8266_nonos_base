@@ -85,4 +85,9 @@
 #endif
 
 #endif
+#include "c_types.h"
+#include "user_interface.h"
+#include "osapi.h"
+#include "mem.h"
 
+u16 cur_gpio_break;

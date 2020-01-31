@@ -9,11 +9,13 @@
 #include "sta_client.h"
 #include "user_smart_config.h"
 #include "user_tcp_client.h"
+#include "driver/dht11.h"
 //定时器
 os_timer_t timer_connect_wifi;
+os_timer_t timer_get_temperature;
 
 //定时器回调函数
-void ICACHE_FLASH_ATTR user_timer_callback(void)
+void ICACHE_FLASH_ATTR user_timer_check_net(void)
 {
 	u8 S_WIFI_STA_Connect;
 	struct ip_info ST_ESP8266_IP;
@@ -43,6 +45,20 @@ void ICACHE_FLASH_ATTR user_timer_callback(void)
 	}
 }
 
+void  ICACHE_FLASH_ATTR  user_timer_get_temperature(void)
+{
+	u8 status =DHT11_Read_Data_Complete();
+	if(status == 0)		// 读取DHT11温湿度
+		{
+			DHT11_NUM_Char();	// DHT11数据值转成字符串
+			os_printf("湿度 : %s\n",DHT11_Data_Char[0]);
+			os_printf("温度 : %s\n",DHT11_Data_Char[1]);
+		}
+		else
+		{
+			os_printf("获取失败  %d",status);
+		}
+}
 //设置定时器
 void ICACHE_FLASH_ATTR create_timer(os_timer_t* t , os_timer_func_t* pfunc,uint32_t ms,void* parg)
 {
@@ -52,6 +68,7 @@ void ICACHE_FLASH_ATTR create_timer(os_timer_t* t , os_timer_func_t* pfunc,uint3
 }
 void ICACHE_FLASH_ATTR init_timer(void)
 {
-	create_timer(&timer_connect_wifi , (os_timer_func_t*)user_timer_callback , 1000 , NULL);
+	create_timer(&timer_connect_wifi , (os_timer_func_t*)user_timer_check_net , 1000 , NULL);
+	create_timer(&timer_get_temperature , (os_timer_func_t*)user_timer_get_temperature , 5000 , NULL);
 }
 

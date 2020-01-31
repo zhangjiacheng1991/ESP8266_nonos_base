@@ -21,7 +21,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-
+#include "c_types.h"
 #ifndef _GPIO_H_
 #define _GPIO_H_
 

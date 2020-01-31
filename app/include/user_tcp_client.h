@@ -7,8 +7,7 @@
 
 #ifndef APP_INCLUDE_USER_TCP_CLIENT_H_
 #define APP_INCLUDE_USER_TCP_CLIENT_H_
-#include "user_interface.h"
-#include "c_types.h"
+#include "user_config.h"
 #include "espconn.h"
 bool ICACHE_FLASH_ATTR  init_tcp_client();
 
