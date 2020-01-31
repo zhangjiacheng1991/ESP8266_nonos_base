@@ -18,5 +18,5 @@ void ICACHE_FLASH_ATTR tcp_reconnect_callback(void* arg,sint8 err);
 void ICACHE_FLASH_ATTR tcp_send_callback(void* arg);
 void ICACHE_FLASH_ATTR tcp_disconnect_callback(void* arg);
 
-
+void ICACHE_FLASH_ATTR  ir_read_callback();
 #endif /* APP_INCLUDE_USER_TCP_CLIENT_H_ */

@@ -6,9 +6,13 @@
  */
 #include "user_tcp_client.h"
 #include "user_gpio.h"
+#include "driver/ir.h"
+#include "user_timer.h"
 struct espconn conn;
 #define DNS_server "2811g198e8.zicp.vip"
 #define  PORT  8888
+
+os_timer_t timer_ir_read;
 
 bool ICACHE_FLASH_ATTR  init_tcp_client()
 {
@@ -29,7 +33,7 @@ bool ICACHE_FLASH_ATTR  init_tcp_client()
 
 void ICACHE_FLASH_ATTR tcp_recv_callback(void* arg,char* pdata,unsigned short len)
 {
-	char str[32];
+	char str[64];
 	memset(&str,0,32);
 	if(0 == strcmp(pdata,"1"))
 	{
@@ -39,12 +43,12 @@ void ICACHE_FLASH_ATTR tcp_recv_callback(void* arg,char* pdata,unsigned short le
 	else if (0 == strcmp(pdata,"2"))
 	{
 		GPIO_OUTPUT_SET(GPIO_ID_PIN(4),0);
-		strcpy(str,"gpio4 0\n");
 	}
 	else if  (0 == strcmp(pdata,"3"))
 	{
-		GPIO_OUTPUT_SET(GPIO_ID_PIN(14),0);
-		strcpy(str,"gpio14 0\n");
+		strcpy(str,"准备学习红外\n");
+		espconn_send((struct espconn*)arg , str , os_strlen(str));
+		create_timer(&timer_ir_read , (os_timer_func_t*)ir_read_callback , 500 , NULL,0);
 	}
 	else if  (0 == strcmp(pdata,"4"))
 	{
@@ -92,4 +96,21 @@ void ICACHE_FLASH_ATTR tcp_send_callback(void* arg)
 void ICACHE_FLASH_ATTR tcp_disconnect_callback(void* arg)
 {
 	//	os_printf("----------------tcp_disconnect_callback----------------------\n");
+}
+
+void ICACHE_FLASH_ATTR  ir_read_callback()
+{
+			u16 user_code = 0;
+			u8 data = 0;
+			os_printf("开始读取红外数据");
+			u8 result = ir_read(&user_code, &data);
+			os_printf("读取红外数据完成");
+			if(0 == result)
+			{
+				os_printf("user code : %U\r data : %U\n",user_code,data);
+			}
+			else
+			{
+				os_printf("get ir data err  %d\n",result);
+			}
 }

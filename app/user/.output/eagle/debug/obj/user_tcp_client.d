@@ -16,4 +16,5 @@
  /opt/xtensa-lx106-elf/lib/gcc/xtensa-lx106-elf/4.8.2/include/stddef.h \
  ../../include/mem.h ../../include/spi_flash.h ../../include/gpio.h \
  ../../include/espconn.h ../include/user_gpio.h ../../include/eagle_soc.h \
- ../../include/gpio.h
+ ../../include/gpio.h ../include/driver/ir.h ../../include/pwm.h \
+ ../include/user_timer.h

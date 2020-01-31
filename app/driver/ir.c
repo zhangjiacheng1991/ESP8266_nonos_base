@@ -8,19 +8,21 @@
 #include "driver/ir.h"
 #include "pwm.h"
 #include "ets_sys.h"
+bool ir_read_ready =  false;
+bool ir_read_on = false;
+u8 ir_read_index = 0 ;
+uint32 Each_bit_duration[35];
 
-os_timer_t ir_read_timer;;
-
+uint32 last_time = 0;
 void ICACHE_FLASH_ATTR ir_init()
 {
+	ir_signal_output(0);
 	uint32 duty=1;
 	uint32 pin_info_list[3]= {PERIPHS_IO_MUX_MTMS_U,FUNC_GPIO14,GPIO_ID_PIN(14)};
-	pwm_init(38000,&duty,50,&pin_info_list);
+	//	pwm_init(38000,&duty,50,&pin_info_list);
 	memset(&Each_bit_duration,0,34);
-	ETS_GPIO_INTR_DISABLE();
-	ETS_GPIO_INTR_ATTACH(ir_read_break_callback,NULL);
-	gpio_pin_intr_state_set(GPIO_ID_PIN(5),GPIO_PIN_INTR_NEGEDGE);
-	ETS_GPIO_INTR_ENABLE();
+	//	ETS_GPIO_INTR_ENABLE();
+
 }
 
 void ICACHE_FLASH_ATTR ir_send_msg(u16 user_code, u8 data)
@@ -90,71 +92,104 @@ void ICACHE_FLASH_ATTR ir_signal_input(void)
 
 u8 ICACHE_FLASH_ATTR ir_read(u16* user_code, u8* data)
 {
-	if(ir_read_ready)
+	os_printf("ir_read begin");
+	ir_read_on = true;
+	ir_read_ready = false;
+	ir_read_index =0;
+	last_time = 0;
+	u8 status =1;
+	ETS_GPIO_INTR_DISABLE();
+	ETS_GPIO_INTR_ATTACH(ir_read_break_callback,NULL);
+	gpio_pin_intr_state_set(GPIO_ID_PIN(5),GPIO_PIN_INTR_NEGEDGE);
+	ETS_GPIO_INTR_ENABLE();
+	memset(&Each_bit_duration,0,sizeof(u32));
+	while(ir_read_on)
 	{
-		uint32  time1 =	Each_bit_duration[1] - Each_bit_duration[0];
-		if(time1 < 8900)
+		system_soft_wdt_feed();
+		os_delay_us(5000);
+		if(ir_read_ready)
 		{
-			return 1;
+			uint32 arr[34]={0};
+			int i=0;
+			for(i;i< 34; i++)
+			{
+				arr[i] = Each_bit_duration[i+1] - Each_bit_duration[i];
+			}
+			if(arr[0] < 8900)
+			{
+				os_printf("time1 < 8900");
+				break;
+			}
+			ir_read_user_code(user_code);
+			u8 ok =  ir_read_data(data);
+			if(0 != ok )
+			{
+				memset(user_code, 0,sizeof(u16));
+				memset(data,0,sizeof(u8));
+				os_printf("read data err  code : %d",ok);
+				break;
+			}
+			memset(&Each_bit_duration,0,34);
+			status = 0;
+			os_printf("read data ok");
+			break;
 		}
-		time1 = Each_bit_duration[34] - Each_bit_duration[33];
-		if(ir_read_bit(time1)  !=0)
+		else
 		{
-			return 1;
+//			os_printf(" ir_read_index : %d", ir_read_index);
 		}
-		ir_read_user_code(user_code);
-		u8 ok =  ir_read_data(data);
-		if(0 != ok )
-		{
-			memset(user_code, 0,sizeof(u16));
-			memset(data,0,sizeof(u8));
-			os_printf("read data err  code : %d",ok);
-		}
-		memset(&Each_bit_duration,0,34);
-		ir_read_ready = false;
-		ir_read_index =0;
-		return 0;
 	}
-	else
-	{
-//		INFO("»ñÈ¡ ºìÍâ Ê§°Ü");
-		return 1;
-	}
+	os_printf("ir_read end");
+	return status;
 }
 
 void  ir_read_break_callback()
 {
+	u32 S_GPIO_INT = 0 ;
+	S_GPIO_INT = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS,S_GPIO_INT);
 	if(ir_read_index >= 34)
 	{
 		ir_read_ready = true;
+		ETS_GPIO_INTR_DISABLE();
 		return;
 	}
-	Each_bit_duration[ir_read_index] = system_get_time()/1000;
-	if(Each_bit_duration[ir_read_index] - Each_bit_duration[0] >30000)
+	u32 cur_time = system_get_time();
+
+	 if(ir_read_index != 0 && cur_time - Each_bit_duration[0] > 300000 )
+	{
+		ETS_GPIO_INTR_DISABLE();
+		return;
+	}
+	else if (cur_time - last_time  < 700)
 	{
 		return;
 	}
-		ir_read_index++;
+	Each_bit_duration[ir_read_index] = cur_time;
+	ir_read_index++;
+	last_time = cur_time;
 }
 
 u8 ICACHE_FLASH_ATTR ir_read_user_code(u16* user_code)
 {
-	memset(user_code,0,sizeof(u16));
+	u16 code = 0;
 	u8 i = 0 +1;
 	for(i ; i < 16 +1; i ++)
 	{
 		uint32  time =	Each_bit_duration[ i +1] - Each_bit_duration[ i ];
+		os_printf("USER CODE %d : %d\n",i,time);
 		u8 bit = ir_read_bit(time);
 		if( IR_READ_BIT_ERR != bit)
 		{
-			(*user_code) &= bit;
-			(*user_code) <<= 1;
+			code |= bit;
+			code <<= 1;
 		}
 		else
 		{
 			return 1;
 		}
 	}
+	*user_code = code;
 	return 0;
 }
 u8 ICACHE_FLASH_ATTR ir_read_data(u8* data)
@@ -165,12 +200,13 @@ u8 ICACHE_FLASH_ATTR ir_read_data(u8* data)
 	i=1+16;
 	for(i; i < 1+16+8; i ++)
 	{
-		uint32  time =	Each_bit_duration[ i ] - Each_bit_duration[ i+1 ];
+		uint32  time =	Each_bit_duration[ i +1] - Each_bit_duration[ i ];
 		u8 bit = ir_read_bit(time);
+		os_printf("USER CODE %d : %d\n",i,bit);
 		if( IR_READ_BIT_ERR != bit)
 		{
-			data1 &= bit;
 			data1 <<= 1;
+			data1 &= bit;
 		}
 		else
 		{
@@ -180,26 +216,26 @@ u8 ICACHE_FLASH_ATTR ir_read_data(u8* data)
 	i = 1+16+8 ;
 	for(i; i < 1+16+8 +8; i ++)
 	{
-		uint32  time =	Each_bit_duration[ i ] - Each_bit_duration[ i+1 ];
+		uint32  time =	Each_bit_duration[ i+1 ] - Each_bit_duration[ i ];
 		u8 bit = ir_read_bit(time);
+		os_printf("USER CODE %d : %d\n",i,bit);
 		if( IR_READ_BIT_ERR != bit)
 		{
-			data2 &= bit;
 			data2 <<= 1;
+			data2 &= bit;
+
 		}
 		else
 		{
 			return 1;
 		}
 	}
-	if(data1 == ~data2)
+	if(data1 & data2 != 0)
 	{
-		*data = data1;
-	}
-	else
-	{
+
 		return 1;
 	}
+	*data = data1;
 	return 0;
 }
 
@@ -215,3 +251,5 @@ u8 ICACHE_FLASH_ATTR ir_read_bit(u32 time)
 	}
 	else return IR_READ_BIT_ERR;
 }
+
+
